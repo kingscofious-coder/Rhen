@@ -155,9 +155,9 @@ export default function DashboardPage() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('[DASHBOARD] Auth state changed:', event, 'Has session:', !!session);
-        
+
         if (isCancelled) return;
-        
+
         if (event === 'SIGNED_OUT' || !session) {
           console.log('[DASHBOARD] User signed out, redirecting');
           router.replace('/login');
@@ -172,7 +172,7 @@ export default function DashboardPage() {
     return () => {
       console.log('[DASHBOARD] Cleaning up auth listener');
       isCancelled = true;
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
   }, [router]);
 
@@ -207,23 +207,19 @@ export default function DashboardPage() {
 
   const fetchTransactionsData = async (isLoadMore = false) => {
     if (isLoadMore) setIsLoadingMore(true);
-    
+
     try {
       const targetPage = isLoadMore ? page + 1 : 0;
       const from = targetPage * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
 
-      let ordersQuery = supabase
+      let ordersQuery: any = supabase
         .from('orders')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .range(from, to);
+        .select('*');
 
-      let withdrawalsQuery = supabase
+      let withdrawalsQuery: any = supabase
         .from('withdrawals')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .range(from, to);
+        .select('*');
 
       if (startDate) {
         const start = new Date(startDate);
@@ -238,6 +234,17 @@ export default function DashboardPage() {
         ordersQuery = ordersQuery.lte('created_at', end.toISOString());
         withdrawalsQuery = withdrawalsQuery.lte('created_at', end.toISOString());
       }
+
+      // Apply ordering and pagination after filters
+      ordersQuery = ordersQuery
+        .order('created_at', { ascending: false })
+        .limit(ITEMS_PER_PAGE)
+        .offset(from);
+
+      withdrawalsQuery = withdrawalsQuery
+        .order('created_at', { ascending: false })
+        .limit(ITEMS_PER_PAGE)
+        .offset(from);
 
       const { data: orders, error: ordersError } = await ordersQuery;
       const { data: withdrawals, error: withdrawalsError } = await withdrawalsQuery;
@@ -314,8 +321,8 @@ export default function DashboardPage() {
           .from('withdrawals')
           .select('amount');
 
-        const totalRevenue = orderTotals?.reduce((acc, order) => acc + (Number(order.total) || 0), 0) || 0;
-        const totalWithdrawals = withdrawalAmounts?.reduce((acc, w) => acc + (Number(w.amount) || 0), 0) || 0;
+        const totalRevenue = orderTotals?.reduce((acc: number, order: any) => acc + (Number(order.total) || 0), 0) || 0;
+        const totalWithdrawals = withdrawalAmounts?.reduce((acc: number, w: any) => acc + (Number(w.amount) || 0), 0) || 0;
         const currentBalance = totalRevenue - totalWithdrawals;
 
         setStats([
@@ -323,8 +330,8 @@ export default function DashboardPage() {
         ]);
 
         // 2. Fetch Recent Transactions for Dashboard Widget (Top 5)
-        const { data: orders } = await supabase.from('orders').select('*').order('created_at', { ascending: false }).range(0, ITEMS_PER_PAGE - 1);
-        const { data: withdrawals } = await supabase.from('withdrawals').select('*').order('created_at', { ascending: false }).range(0, ITEMS_PER_PAGE - 1);
+        const { data: orders } = await (supabase.from('orders').select('*').order('created_at', { ascending: false }) as any).range(0, ITEMS_PER_PAGE - 1);
+        const { data: withdrawals } = await (supabase.from('withdrawals').select('*').order('created_at', { ascending: false }) as any).range(0, ITEMS_PER_PAGE - 1);
 
         const newTx = processTransactions(orders, withdrawals).sort((a, b) => 
           new Date(b.rawDate || b.date).getTime() - new Date(a.rawDate || a.date).getTime()
@@ -461,8 +468,8 @@ export default function DashboardPage() {
         finalAvatarUrl = publicUrl;
       }
 
-      const { error } = await supabase
-        .from('profiles')
+      const { error } = await (supabase
+        .from('profiles') as any)
         .upsert({
           id: user.id,
           full_name: tempName,

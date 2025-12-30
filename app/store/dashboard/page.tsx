@@ -1,6 +1,8 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useMemo } from "react";
+export const dynamic = 'force-dynamic';
+
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import nextDynamic from "next/dynamic";
@@ -156,6 +158,20 @@ const templates: Template[] = [
 ];
 
 function DashboardContent() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="w-10 h-10 border-4 border-gray-900 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [storeName, setStoreName] = useState("My Store");
@@ -217,6 +233,35 @@ function DashboardContent() {
     return date >= sevenDaysAgo;
   };
 
+  // Helper to load store settings
+  const loadStoreSettings = async (userId: string) => {
+    try {
+      const { data: settings, error } = await supabase
+        .from('store_settings')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (settings) {
+        setStoreName(settings.store_name || "My Store");
+        setStoreDescription(settings.store_description || "");
+        setCoverPhoto(settings.cover_photo || "");
+        setWishlist(settings.wishlist || []);
+        if (settings.saved_card) {
+          setCardDetails(settings.saved_card);
+        }
+        if (settings.current_template) {
+          setCurrentTemplate(settings.current_template);
+        }
+        if (settings.template_colors) {
+          setTemplateColors(settings.template_colors);
+        }
+      }
+    } catch (err) {
+      console.log("No store settings found or error loading them");
+    }
+  };
+
   // Helper to sync store settings to Supabase
   const updateStoreSettings = async (updates: any) => {
     if (!user) return;
@@ -271,7 +316,7 @@ function DashboardContent() {
 
       setProducts(prev => prev.map(p => p.id === quickViewProduct.id ? { ...p, reviews: [newReview, ...(p.reviews || [])] } : p));
       setQuickViewProduct(prev => prev ? { ...prev, reviews: [newReview, ...(prev.reviews || [])] } : null);
-      
+
       setNewReviewText("");
       setNewReviewRating(0);
       toast.success("Thank you for your review!", { id: toastId });
@@ -755,15 +800,11 @@ function DashboardContent() {
 
   useEffect(() => {
     const handleScroll = () => {
-      if (typeof window !== 'undefined') {
-        setShowBackToTop(window.scrollY > 300);
-      }
+      setShowBackToTop(window.scrollY > 300);
     };
 
-    if (typeof window !== 'undefined') {
-      window.addEventListener('scroll', handleScroll);
-      return () => window.removeEventListener('scroll', handleScroll);
-    }
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   useEffect(() => {
@@ -1964,7 +2005,7 @@ function DashboardContent() {
 
 }
 
-const StoreDashboardPage = nextDynamic(() => Promise.resolve(DashboardContent), {
+export default nextDynamic(() => Promise.resolve(DashboardContent), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -1972,14 +2013,3 @@ const StoreDashboardPage = nextDynamic(() => Promise.resolve(DashboardContent), 
     </div>
   )
 });
-
-const StoreDashboardPageComponent = nextDynamic(() => Promise.resolve(StoreDashboardPage), {
-  ssr: false,
-  loading: () => (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <div className="w-10 h-10 border-4 border-gray-900 border-t-transparent rounded-full animate-spin"></div>
-    </div>
-  )
-});
-
-export default StoreDashboardPageComponent;
