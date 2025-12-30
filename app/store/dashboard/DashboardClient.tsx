@@ -1,11 +1,8 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import nextDynamic from "next/dynamic";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Minus, Share2, Search, X, Trash2, Star, ShoppingBag, Package, Home, ArrowUp, ChevronLeft, ChevronRight, Camera, CreditCard, Heart, CheckCircle, User as UserIcon, Edit2, Save, Wallet, BarChart3, Megaphone, TrendingUp, Target, FileText, Palette, Check, Crown, Sparkles } from "lucide-react";
@@ -20,6 +17,14 @@ import { usePaystackPayment } from 'react-paystack';
 import { Plus_Jakarta_Sans } from "next/font/google";
 const font = Plus_Jakarta_Sans({ subsets: ["latin"] });
 
+interface Review {
+  id: string;
+  author: string;
+  rating: number;
+  text: string;
+  createdAt: string;
+}
+
 interface Product {
   id: string;
   name: string;
@@ -33,14 +38,6 @@ interface Product {
   category?: string;
   colors?: string[];
   sizes?: string[];
-}
-
-interface Review {
-  id: string;
-  author: string;
-  rating: number;
-  text: string;
-  createdAt: string;
 }
 
 interface CartItem extends Product {
@@ -269,12 +266,12 @@ function DashboardContent() {
     try {
       const { error } = await supabase
         .from('store_settings')
-        .upsert({ 
-          user_id: user.id, 
+        .upsert({
+          user_id: user.id,
           updated_at: new Date().toISOString(),
-          ...updates 
+          ...updates
         });
-        
+
       if (error) throw error;
     } catch (error: any) {
       console.error("Error updating settings:", error);
@@ -333,7 +330,7 @@ function DashboardContent() {
       const newWishlist = prev.includes(productId)
         ? prev.filter(id => id !== productId)
         : [...prev, productId];
-      
+
       // Update Supabase instead of localStorage
       updateStoreSettings({ wishlist: newWishlist });
       toast.success(prev.includes(productId) ? "Removed from wishlist" : "Added to wishlist");
@@ -382,7 +379,7 @@ function DashboardContent() {
 
         setCoverPhoto(publicUrl);
         await updateStoreSettings({ cover_photo: publicUrl });
-        
+
         toast.success("Cover photo updated!", { id: toastId });
       } catch (error: any) {
         console.error("Upload error:", error);
@@ -437,7 +434,7 @@ function DashboardContent() {
           .from('cart')
           .update({ quantity: existingItems.quantity + quantity })
           .eq('id', existingItems.id);
-        
+
         if (error) throw error;
         toast.success(`${product.name} (x${quantity}) quantity updated!`);
       } else {
@@ -457,7 +454,7 @@ function DashboardContent() {
 
       // Refresh local cart state
       fetchCart();
-      
+
     } catch (error: any) {
       console.error("Failed to update cart", error);
       toast.error("Could not add product to cart.");
@@ -499,12 +496,12 @@ function DashboardContent() {
       updateStoreSettings({ saved_card: cardDetails });
     }
     if (!checkoutProduct) return;
-    
+
     setIsProcessingPayment(true);
 
     // Trigger Paystack
-    initializePayment({ 
-      onSuccess: processOrder, 
+    initializePayment({
+      onSuccess: processOrder,
       onClose: () => {
         setIsProcessingPayment(false);
         toast.error("Payment cancelled");
@@ -514,16 +511,16 @@ function DashboardContent() {
 
   const processOrder = async (paymentStatusOrRef?: any) => {
     if (!checkoutProduct) return;
-    
+
     if (!user) {
       toast.error("Please log in to place an order");
       return;
     }
 
     const toastId = toast.loading("Processing order...");
-    
+
     const status = typeof paymentStatusOrRef === 'string' ? paymentStatusOrRef : 'paid';
-    
+
     try {
         const rawPrice = checkoutProduct.salePrice && Number(checkoutProduct.salePrice) > 0 && Number(checkoutProduct.salePrice) < Number(checkoutProduct.price) ? checkoutProduct.salePrice : checkoutProduct.price;
         // Remove commas and ensure it is a valid number
@@ -532,7 +529,7 @@ function DashboardContent() {
         if (isNaN(price)) {
           throw new Error("Invalid product price detected. Please check the product details.");
         }
-        
+
         // Create a clean item object to store (removes any potential circular refs or large unnecessary data)
         const orderItem = {
           id: checkoutProduct.id,
@@ -545,7 +542,7 @@ function DashboardContent() {
         const orderPayload = {
           total: price * checkoutQuantity,
           status: status,
-          items: [orderItem], 
+          items: [orderItem],
           user_id: user.id,
           customer_info: {
             name: cardDetails.name || user.user_metadata?.full_name || "Customer",
@@ -581,7 +578,7 @@ function DashboardContent() {
              // Use the secure RPC function to decrement stock
              const { error: stockError } = await supabase
                .rpc('decrement_stock', { product_id: checkoutProduct.id, quantity_to_subtract: checkoutQuantity });
-             
+
              if (stockError) {
                 // Log error but don't fail the order since it's already placed
                 console.error("Stock Update Error:", stockError);
@@ -605,7 +602,7 @@ function DashboardContent() {
         setIsCheckoutModalOpen(false);
         setIsOrderSuccessOpen(true);
         toast.dismiss(toastId);
-        
+
     } catch (error: any) {
         console.error("Order processing error:", error);
         toast.error(`Failed to place order: ${error.message || error.error_description || "Unknown error"}`, { id: toastId });
@@ -664,7 +661,7 @@ function DashboardContent() {
       .from('cart')
       .select('*')
       .eq('user_id', user.id);
-    
+
     if (data) {
       setCartItems(data as CartItem[]);
     }
@@ -681,13 +678,13 @@ function DashboardContent() {
 
       if (data) {
         setOrderCount(data.length);
-        
+
         // Fetch actual balance (Revenue - Withdrawals) if user is logged in
         if (user) {
           const { data: balance } = await supabase.rpc('get_seller_balance', { target_user_id: user.id });
           setTotalRevenue(balance || 0);
         }
-        
+
         const mappedOrders = data.map((order: any) => ({
           id: order.id,
           items: order.items || [],
@@ -727,7 +724,7 @@ function DashboardContent() {
     setDeleteId(id);
   };
 
-  const filteredProducts = products.filter(product => 
+  const filteredProducts = products.filter(product =>
     (product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     product.description.toLowerCase().includes(searchQuery.toLowerCase())) &&
     (selectedCategory === "All" || product.category === selectedCategory)
@@ -838,8 +835,8 @@ function DashboardContent() {
         { event: 'UPDATE', schema: 'public', table: 'products' },
         (payload) => {
           // Stock updated by another user
-          setProducts(currentProducts => 
-            currentProducts.map(p => 
+          setProducts(currentProducts =>
+            currentProducts.map(p =>
               p.id === payload.new.id ? { ...p, ...payload.new, images: payload.new.images || [] } : p
             )
           );
@@ -1271,613 +1268,5 @@ function DashboardContent() {
             onClick={() => setQuickViewProduct(null)}
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl sm:rounded-[2rem] w-full max-w-5xl relative overflow-hidden shadow-2xl z-10 flex flex-col md:flex-row h-[85vh] md:h-[80vh]"
-          >
-            <button
-              onClick={() => setQuickViewProduct(null)}
-              className="absolute top-4 right-4 z-50 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-900 hover:bg-white transition-colors shadow-sm"
-            >
-              <X className="w-5 h-5" />
-            </button>
+...
 
-            <div 
-              className="relative h-[40vh] md:h-full md:w-1/2 bg-gray-100 shrink-0 group overflow-hidden cursor-crosshair"
-              onMouseEnter={() => setIsZoomed(true)}
-              onMouseLeave={() => setIsZoomed(false)}
-              onMouseMove={handleMouseMove}
-            >
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={currentImageIndex}
-                  initial={{ opacity: 0 }}
-                  animate={{ 
-                    opacity: 1,
-                    scale: isZoomed ? 2 : 1
-                  }}
-                  style={{ transformOrigin: `${mousePos.x}% ${mousePos.y}%` }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="w-full h-full relative"
-                >
-                  <Image
-                    src={quickViewProduct.images[currentImageIndex]}
-                    alt={quickViewProduct.name}
-                    fill
-                    className="object-cover"
-                  />
-                </motion.div>
-              </AnimatePresence>
-              
-              {quickViewProduct.images.length > 1 && (
-                <>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCurrentImageIndex((prev) => (prev === 0 ? quickViewProduct.images.length - 1 : prev - 1));
-                    }}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-900 hover:bg-white transition-colors shadow-sm opacity-0 group-hover:opacity-100"
-                  >
-                    <ChevronLeft className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCurrentImageIndex((prev) => (prev === quickViewProduct.images.length - 1 ? 0 : prev + 1));
-                    }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-900 hover:bg-white transition-colors shadow-sm opacity-0 group-hover:opacity-100"
-                  >
-                    <ChevronRight className="w-5 h-5" />
-                  </button>
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
-                    {quickViewProduct.images.map((_, idx) => (
-                      <div
-                        key={idx}
-                        className={`w-1.5 h-1.5 rounded-full transition-all ${
-                          idx === currentImageIndex ? "bg-[var(--primary)] w-3" : "bg-white/60"
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </>
-              )}
-
-              <button
-                onClick={(e) => toggleWishlist(e, quickViewProduct.id)}
-                className={`absolute top-4 left-4 p-2 bg-white/80 backdrop-blur-sm rounded-full transition-colors shadow-sm ${wishlist.includes(quickViewProduct.id) ? 'text-[var(--primary)]' : 'text-gray-900 hover:text-[var(--primary)]'}`}
-              >
-                <Heart className={`w-5 h-5 ${wishlist.includes(quickViewProduct.id) ? 'fill-current' : ''}`} />
-              </button>
-            </div>
-            
-            <div className="flex-1 p-4 sm:p-6 overflow-y-auto md:w-1/2 bg-white">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                <h2 className="text-2xl font-bold text-gray-900 pr-4">{quickViewProduct.name}</h2>
-                <div className="flex items-center gap-1 mt-1">
-                  {[1, 2, 3, 4, 5].map((star) => {
-                    const averageRating = quickViewProduct.reviews && quickViewProduct.reviews.length > 0 ? quickViewProduct.reviews.reduce((acc, r) => acc + r.rating, 0) / quickViewProduct.reviews.length : 0;
-                    return <Star key={star} className={`w-5 h-5 ${star <= Math.round(averageRating) ? "fill-yellow-400 text-yellow-400" : "fill-gray-200 text-gray-200"}`} />
-                  })}
-                  <span className="text-sm text-gray-400 ml-1 font-medium">
-                    ({quickViewProduct.reviews?.length || 0} reviews)
-                  </span>
-                </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-green-600">
-                    ₦{Number(quickViewProduct.salePrice && Number(quickViewProduct.salePrice) > 0 && Number(quickViewProduct.salePrice) < Number(quickViewProduct.price) ? quickViewProduct.salePrice : quickViewProduct.price).toLocaleString()}
-                  </p>
-                  {quickViewProduct.salePrice && Number(quickViewProduct.salePrice) > 0 && Number(quickViewProduct.salePrice) < Number(quickViewProduct.price) && (
-                    <p className="text-gray-400 text-sm line-through font-medium">₦{Number(quickViewProduct.price).toLocaleString()}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="mb-4">
-                {(quickViewProduct.stock > 0 || quickViewProduct.stock === undefined) ? (
-                  <p className="text-sm text-green-600 font-medium">In Stock ({quickViewProduct.stock} available)</p>
-                ) : (
-                  <p className="text-sm text-[var(--primary)] font-medium">Out of Stock</p>
-                )}
-              </div>
-
-              <p className="text-gray-600 leading-relaxed">
-                {quickViewProduct.description || "No description available for this product."}
-              </p>
-
-              {/* Reviews Section */}
-              <div className="mt-8 pt-8 border-t border-gray-200">
-                <h3 className="text-lg font-bold text-gray-800 mb-4">Customer Reviews</h3>
-                
-                {/* Add Review Form */}
-                <form onSubmit={handlePostReview} className="bg-gray-50 p-4 rounded-2xl mb-8 border border-gray-100">
-                  <h4 className="font-bold text-gray-800 mb-2">Write a review</h4>
-                  <div className="flex items-center gap-1 mb-3">
-                    <span className="text-sm text-gray-600 mr-2">Your Rating:</span>
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => setNewReviewRating(star)}
-                        className="focus:outline-none hover:scale-110 transition-transform"
-                      >
-                        <Star className={`w-5 h-5 ${star <= newReviewRating ? "fill-yellow-400 text-yellow-400" : "text-gray-300 hover:text-yellow-400"}`} />
-                      </button>
-                    ))}
-                  </div>
-                  <textarea
-                    value={newReviewText}
-                    onChange={(e) => setNewReviewText(e.target.value)}
-                    rows={3}
-                    placeholder="Share your thoughts about this product..."
-                    className="w-full p-3 bg-white rounded-xl border-gray-200 border focus:ring-2 focus:ring-[var(--primary-20)] outline-none transition-all resize-none text-sm font-medium placeholder:text-gray-400"
-                  />
-                  <button type="submit" className="w-full mt-3 bg-gray-900 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-gray-800 transition-colors">
-                    Submit Review
-                  </button>
-                </form>
-
-                {/* Existing Reviews List */}
-                <div className="space-y-6">
-                  {quickViewProduct.reviews && quickViewProduct.reviews.length > 0 ? (
-                    quickViewProduct.reviews.map(review => (
-                      <div key={review.id} className="flex gap-4">
-                        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-                          <UserIcon className="w-5 h-5 text-gray-400" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <h5 className="font-bold text-gray-800">{review.author}</h5>
-                            <span className="text-xs text-gray-400">• {new Date(review.createdAt).toLocaleDateString()}</span>
-                          </div>
-                          <div className="flex items-center gap-0.5">
-                            {[1, 2, 3, 4, 5].map(star => <Star key={star} className={`w-3 h-3 ${star <= review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200'}`} />)}
-                          </div>
-                          <p className="text-sm text-gray-600 mt-2 leading-relaxed">{review.text}</p>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-gray-500 text-center py-4">No reviews yet. Be the first to write one!</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="mt-8 pt-8 border-t border-gray-200">
-              {(quickViewProduct.stock > 0 || quickViewProduct.stock === undefined) ? (
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-bold text-gray-700">Quantity</span>
-                    <div className="flex items-center gap-4 bg-gray-100 rounded-xl p-1.5">
-                      <button 
-                        onClick={() => setQuickViewQuantity(q => Math.max(1, q - 1))}
-                        className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm text-gray-600 hover:text-[var(--primary)] font-bold transition-colors"
-                      >
-                        <Minus className="w-4 h-4" />
-                      </button>
-                      <span className="font-bold text-gray-900 w-4 text-center">{quickViewQuantity}</span>
-                      <button 
-                        onClick={() => setQuickViewQuantity(q => Math.min(quickViewProduct.stock || 100, q + 1))}
-                        className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm text-gray-600 hover:text-[var(--primary)] font-bold transition-colors"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <motion.button
-                    onClick={(e) => {
-                      handleAddToCart(e, quickViewProduct, quickViewQuantity);
-                      setQuickViewProduct(null);
-                    }}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="w-full bg-[var(--primary)] text-white py-4 rounded-2xl font-bold shadow-lg shadow-[var(--primary-20)] hover:brightness-90 hover:shadow-[var(--primary-30)] transition-all flex items-center justify-center gap-2"
-                  >
-                    <ShoppingBag className="w-5 h-5" />
-                    Add to Cart
-                  </motion.button>
-                  <motion.button
-                    onClick={(e) => {
-                      setCheckoutProduct(quickViewProduct);
-                      setCheckoutQuantity(quickViewQuantity);
-                      setQuickViewProduct(null);
-                      setIsCheckoutModalOpen(true);
-                    }}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="w-full bg-white text-[var(--primary)] border-2 border-[var(--primary-30)] py-4 rounded-2xl font-bold hover:bg-[var(--primary-20)] transition-all flex items-center justify-center gap-2"
-                  >
-                    Buy Now
-                  </motion.button>
-                </div>
-              ) : (
-                <div className="w-full bg-gray-200 text-gray-500 py-4 rounded-2xl font-bold text-center cursor-not-allowed">
-                  Sold Out
-                </div>
-              )}
-              </div>
-
-              {products.filter(p => p.id !== quickViewProduct.id).length > 0 && (
-                <div className="mt-10 pt-8 border-t border-gray-200">
-                  <h3 className="text-lg font-bold text-gray-800 mb-4">You Might Also Like</h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    {products
-                      .filter(p => p.id !== quickViewProduct.id)
-                      .slice(0, 3)
-                      .map(relatedProduct => (
-                        <div
-                          key={relatedProduct.id}
-                          onClick={() => setQuickViewProduct(relatedProduct)}
-                          className="cursor-pointer group"
-                        >
-                          <div className="aspect-square bg-gray-50 rounded-xl overflow-hidden mb-2 relative">
-                            <Image 
-                              src={relatedProduct.images[0]} 
-                              alt={relatedProduct.name} 
-                              fill
-                              className="object-cover group-hover:scale-110 transition-transform duration-300" 
-                            />
-                            {relatedProduct.stock === 0 && <div className="absolute inset-0 bg-white/60" />}
-                          </div>
-                          <h4 className="text-sm font-semibold text-gray-700 truncate group-hover:text-[var(--primary)]">{relatedProduct.name}</h4>
-                          <p className="text-sm font-bold text-green-600">
-                            ₦{Number(relatedProduct.salePrice && Number(relatedProduct.salePrice) > 0 && Number(relatedProduct.salePrice) < Number(relatedProduct.price) ? relatedProduct.salePrice : relatedProduct.price).toLocaleString()}
-                          </p>
-                        </div>
-                      ))
-                    }
-                  </div>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        </div>
-      )}
-
-      <CheckoutModal
-        isOpen={isCheckoutModalOpen}
-        onClose={() => setIsCheckoutModalOpen(false)}
-        product={checkoutProduct}
-        quantity={checkoutQuantity}
-        setQuantity={setCheckoutQuantity}
-        cardDetails={cardDetails}
-        setCardDetails={setCardDetails}
-        saveCard={saveCard}
-        setSaveCard={setSaveCard}
-        onBuyNow={handleBuyNowClick}
-        onPayOnDelivery={async () => {
-          setIsProcessingPayment(true);
-          await processOrder('pending');
-        }}
-        isProcessingPayment={isProcessingPayment}
-        templateColors={templateColors}
-      />
-
-      {/* Order Success Modal */}
-      {isOrderSuccessOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            onClick={() => setIsOrderSuccessOpen(false)}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-xl text-center relative z-10"
-          >
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle className="w-10 h-10 text-green-600" />
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">Order Placed!</h3>
-            <p className="text-gray-500 mb-8">Your order has been successfully placed.</p>
-            
-            {lastOrder && lastOrder.items.length > 0 && (
-              <div className="bg-gray-50 p-4 rounded-xl mb-6 text-left border border-gray-100">
-                <p className="font-bold text-gray-900 line-clamp-1">{lastOrder.items[0].name}</p>
-                <div className="flex justify-between mt-2 text-sm">
-                  <span className="text-gray-500 font-medium">Quantity: {lastOrder.items[0].quantity}</span>
-                  <span className="font-bold text-green-600">₦{lastOrder.total.toLocaleString()}</span>
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-3">
-              <button 
-                onClick={handleShareReceipt}
-                className="w-full py-3.5 px-4 rounded-xl bg-gray-100 text-gray-900 font-bold hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
-              >
-                <Share2 className="w-5 h-5" />
-                Share Receipt
-              </button>
-              <button 
-                onClick={() => setIsOrderSuccessOpen(false)} 
-                className="w-full py-3.5 px-4 rounded-xl bg-[var(--primary)] text-white font-bold hover:brightness-90 transition-all shadow-lg shadow-[var(--primary-30)]"
-              >
-                Done
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {deleteId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl"
-          >
-            <div className="flex flex-col items-center text-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-[var(--primary-20)] flex items-center justify-center">
-                <Trash2 className="w-6 h-6 text-[var(--primary)]" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Delete Product?</h3>
-                <p className="text-sm text-gray-500 mt-1">Are you sure you want to delete this product? This action cannot be undone.</p>
-              </div>
-              <div className="flex gap-3 w-full mt-2">
-                <motion.button
-                  onClick={() => setDeleteId(null)}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="flex-1 py-3 rounded-lg font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
-                >
-                  Cancel
-                </motion.button>
-                <motion.button
-                  onClick={confirmDelete}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="flex-1 py-3 rounded-lg font-semibold text-white bg-[var(--primary)] hover:brightness-90 transition-colors"
-                >
-                  Delete
-                </motion.button>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
-      {/* Templates Modal */}
-      {isTemplatesModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-3xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl"
-          >
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h3 className="text-2xl font-bold text-gray-900">Choose a Template</h3>
-                <p className="text-gray-500 mt-1">Select a theme that matches your brand</p>
-              </div>
-              <button
-                onClick={() => setIsTemplatesModalOpen(false)}
-                className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-600" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              {templates.map((template) => (
-                <motion.div
-                  key={template.id}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setSelectedTemplate(template.id)}
-                  className={`relative cursor-pointer rounded-2xl overflow-hidden border-2 transition-all ${
-                    selectedTemplate === template.id
-                      ? 'border-[var(--primary)] shadow-lg shadow-[var(--primary-20)]'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  {template.isPremium && (
-                    <div className="absolute top-3 right-3 z-10 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1">
-                      <Crown className="w-3 h-3" />
-                      Premium
-                    </div>
-                  )}
-                  {template.isPopular && (
-                    <div className="absolute top-3 left-3 z-10 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" />
-                      Popular
-                    </div>
-                  )}
-
-                  <div
-                    className="h-32 relative"
-                    style={{ backgroundColor: template.colors.background }}
-                  >
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="text-center">
-                        <div
-                          className="w-8 h-8 rounded-full mx-auto mb-2"
-                          style={{ backgroundColor: template.colors.primary }}
-                        ></div>
-                        <div
-                          className="w-12 h-2 rounded-full mx-auto"
-                          style={{ backgroundColor: template.colors.secondary }}
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="p-4">
-                    <h4 className="font-bold text-gray-900 mb-1">{template.name}</h4>
-                    <p className="text-sm text-gray-600 mb-3">{template.description}</p>
-
-                    <div className="flex gap-2">
-                      <div
-                        className="w-4 h-4 rounded-full border border-gray-300"
-                        style={{ backgroundColor: template.colors.primary }}
-                        title="Primary"
-                      ></div>
-                      <div
-                        className="w-4 h-4 rounded-full border border-gray-300"
-                        style={{ backgroundColor: template.colors.secondary }}
-                        title="Secondary"
-                      ></div>
-                      <div
-                        className="w-4 h-4 rounded-full border border-gray-300"
-                        style={{ backgroundColor: template.colors.accent }}
-                        title="Accent"
-                      ></div>
-                      <div
-                        className="w-4 h-4 rounded-full border border-gray-300"
-                        style={{ backgroundColor: template.colors.background }}
-                        title="Background"
-                      ></div>
-                    </div>
-                  </div>
-
-                  {selectedTemplate === template.id && (
-                    <div className="absolute inset-0 bg-[var(--primary)]/10 flex items-center justify-center">
-                      <Check className="w-8 h-8 text-[var(--primary)]" />
-                    </div>
-                  )}
-                </motion.div>
-              ))}
-            </div>
-
-            <div className="flex gap-4 justify-end">
-              <motion.button
-                onClick={() => setIsTemplatesModalOpen(false)}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-6 py-3 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
-              >
-                Cancel
-              </motion.button>
-              <motion.button
-                onClick={async () => {
-                  if (!selectedTemplate) return;
-
-                  setIsApplyingTemplate(true);
-                  try {
-                    const template = templates.find(t => t.id === selectedTemplate);
-                    if (template) {
-                      await updateStoreSettings({
-                        current_template: selectedTemplate,
-                        template_colors: template.colors
-                      });
-                      setCurrentTemplate(selectedTemplate);
-                      setTemplateColors(template.colors);
-                      toast.success(`Applied ${template.name} template!`);
-                      setIsTemplatesModalOpen(false);
-                      setSelectedTemplate(null);
-                    }
-                  } catch (error) {
-                    toast.error("Failed to apply template");
-                  } finally {
-                    setIsApplyingTemplate(false);
-                  }
-                }}
-                disabled={!selectedTemplate || isApplyingTemplate}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className={`px-6 py-3 rounded-xl font-semibold text-white transition-colors flex items-center gap-2 ${
-                  selectedTemplate && !isApplyingTemplate
-                    ? 'bg-[var(--primary)] hover:brightness-90'
-                    : 'bg-gray-300 cursor-not-allowed'
-                }`}
-              >
-                {isApplyingTemplate ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Applying...
-                  </>
-                ) : (
-                  <>
-                    <Palette className="w-4 h-4" />
-                    Apply Template
-                  </>
-                )}
-              </motion.button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
-      <AnimatePresence>
-        {showBackToTop && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            onClick={() => typeof window !== 'undefined' && window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="fixed bottom-24 right-6 p-3 bg-[var(--primary)] text-white rounded-full shadow-lg z-40 hover:brightness-90 transition-colors"
-          >
-            <ArrowUp className="w-6 h-6" />
-          </motion.button>
-        )}
-      </AnimatePresence>
-
-      {!isPreviewMode ? (
-        <BottomNav />
-      ) : (
-        <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 py-3 px-4 pb-6 z-50">
-          <div className="flex justify-around items-center max-w-md mx-auto">
-            <Link href="/cart">
-              <motion.div
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className="flex flex-col items-center gap-1 text-gray-400 hover:text-[var(--primary)] transition-colors"
-              >
-                <div className="relative">
-                  <ShoppingBag className="w-6 h-6" />
-                  {cartCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[var(--primary)] text-white text-[9px] rounded-full flex items-center justify-center font-bold">
-                      {cartCount}
-                    </span>
-                  )}
-                </div>
-                <span className="text-[10px] font-medium">Cart</span>
-              </motion.div>
-            </Link>
-            <motion.button
-              onClick={() => typeof window !== 'undefined' && window.scrollTo({ top: 0, behavior: 'smooth' })}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="flex flex-col items-center gap-1 text-[var(--primary)]"
-            >
-              <Home className="w-6 h-6" />
-              <span className="text-[10px] font-medium">Shop</span>
-            </motion.button>
-            <Link href="/orders">
-              <motion.div
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className="flex flex-col items-center gap-1 text-gray-400 hover:text-[var(--primary)] transition-colors"
-              >
-                <Package className="w-6 h-6" />
-                <span className="text-[10px] font-medium">Orders</span>
-              </motion.div>
-            </Link>
-          </div>
-        </div>
-      )}
-
-      </div>
-    </div>
-
-  );
-
-}
-
-export default nextDynamic(() => Promise.resolve(DashboardContent), {
-  ssr: false,
-  loading: () => (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <div className="w-10 h-10 border-4 border-gray-900 border-t-transparent rounded-full animate-spin"></div>
-    </div>
-  )
-});
