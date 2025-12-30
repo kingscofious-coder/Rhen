@@ -1,4 +1,5 @@
 {
+  "name": "rhenfashion",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
