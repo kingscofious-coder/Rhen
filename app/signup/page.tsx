@@ -21,6 +21,7 @@ export default function SignUpPage() {
     confirmPassword: '',
   });
   const [errors, setErrors] = useState<Partial<typeof formData>>({});
+  const [generalError, setGeneralError] = useState<string | null>(null);
   const [passwordVisibility, setPasswordVisibility] = useState({
     current: false,
     confirm: false,
@@ -55,7 +56,11 @@ export default function SignUpPage() {
       try {
         const { data, error } = await signUp(formData.email, formData.password);
         if (error) {
-          setErrors({ email: error.message });
+          if (error.message?.includes('Auth not configured')) {
+            setGeneralError('Authentication is not configured on the server — please try again later or contact support.');
+          } else {
+            setErrors({ email: error.message });
+          }
         } else {
           // On successful submission, redirect to complete profile
           sessionStorage.setItem('auth-success', 'Welcome! Your account has been created.');
@@ -100,6 +105,11 @@ export default function SignUpPage() {
           </div>
 
           {/* Form */}
+          {generalError && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm text-center">
+              {generalError}
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5 mb-6" noValidate>
             <FormInput
               id="name"

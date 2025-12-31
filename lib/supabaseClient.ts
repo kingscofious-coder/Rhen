@@ -91,7 +91,7 @@ export const supabase = isBuildTime
 
 // Export mock functions for build time
 export const signUp = isBuildTime
-  ? () => Promise.resolve({ data: { user: null, session: null }, error: { message: 'Build time' } })
+  ? () => Promise.resolve({ data: { user: null, session: null }, error: { message: 'Auth not configured (missing NEXT_PUBLIC_SUPABASE_* env vars).' } })
   : async (email: string, password: string) => {
       const { data, error } = await supabase.auth.signUp({ email, password })
       if (error) console.error('Supabase SignUp Error:', error.message)
@@ -99,7 +99,7 @@ export const signUp = isBuildTime
     }
 
 export const signIn = isBuildTime
-  ? () => Promise.resolve({ data: { user: null, session: null }, error: { message: 'Build time' } })
+  ? () => Promise.resolve({ data: { user: null, session: null }, error: { message: 'Auth not configured (missing NEXT_PUBLIC_SUPABASE_* env vars).' } })
   : async (email: string, password: string) => {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) console.error('Supabase SignIn Error:', error.message)
@@ -114,18 +114,21 @@ export const signOut = isBuildTime
     }
 
 export const getSession = isBuildTime
-  ? () => Promise.resolve({ data: { session: null }, error: { message: 'Build time' } })
+  ? () => Promise.resolve({ data: { session: null }, error: { message: 'Auth not configured (missing NEXT_PUBLIC_SUPABASE_* env vars).' } })
   : async () => {
       const { data, error } = await supabase.auth.getSession()
       return { data, error }
     }
 
 export const getUser = isBuildTime
-  ? () => Promise.resolve({ data: { user: null }, error: { message: 'Build time' } })
+  ? () => Promise.resolve({ data: { user: null }, error: { message: 'Auth not configured (missing NEXT_PUBLIC_SUPABASE_* env vars).' } })
   : async () => {
       const { data, error } = await supabase.auth.getUser()
       return { data, error }
     }
+
+// Whether auth is available (useful for showing friendly UI when not configured)
+export const isAuthConfigured = !isBuildTime
 
 export const resetPassword = isBuildTime
   ? () => Promise.resolve({ data: null, error: { message: 'Build time' } })

@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+
+const BUILD_TIME = Date.now();
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Plus, Trash2, Heart, ShoppingBag, Star, X } from 'lucide-react';
@@ -49,11 +51,9 @@ export default function DashboardClient() {
 
   const filteredProducts = useMemo(() => products.filter(p => p.name.toLowerCase().includes(searchQuery.trim().toLowerCase())), [products, searchQuery]);
 
-  const now = useMemo(() => Date.now(), []);
-
   const isNewArrival = (createdAt?: string) => {
     if (!createdAt) return false;
-    return (now - new Date(createdAt).getTime()) < 1000 * 60 * 60 * 24 * 14; // 14 days
+    return (BUILD_TIME - new Date(createdAt).getTime()) < 1000 * 60 * 60 * 24 * 14; // 14 days
   };
 
   const handleDeleteClick = (id: string) => {

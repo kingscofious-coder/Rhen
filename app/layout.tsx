@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "./theme-provider";
+import { isAuthConfigured } from "../lib/supabaseClient";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -54,6 +55,15 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          {/* Site-wide notice when auth isn't configured */}
+          {!isAuthConfigured && (
+            <div className="w-full bg-yellow-50 text-yellow-900 border-b border-yellow-200 text-center py-2 text-sm">
+              <div className="max-w-6xl mx-auto px-4">
+                <strong>Notice:</strong> Authentication is not configured — signups/logins may not work. Please set <code>NEXT_PUBLIC_SUPABASE_URL</code> and <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> in your deployment provider and redeploy.
+              </div>
+            </div>
+          )}
+
           {children}
         </ThemeProvider>
       </body>

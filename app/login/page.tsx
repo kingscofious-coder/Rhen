@@ -60,7 +60,11 @@ export default function LoginPage() {
         const { data, error } = await signIn(formData.email, formData.password);
         
         if (error) {
-          setGeneralError(error.message);
+          if (error.message?.includes('Auth not configured')) {
+            setGeneralError('Authentication is not configured on the server — please try again later or contact support.');
+          } else {
+            setGeneralError(error.message);
+          }
           setIsSubmitting(false);
           return;
         }
