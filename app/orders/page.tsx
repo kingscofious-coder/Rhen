@@ -42,6 +42,7 @@ export default function OrdersPage() {
   const router = useRouter();
   const [orders, setOrders] = useState<OrderData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const now = useMemo(() => Date.now(), []);
 
   useEffect(() => {
     const fetchUserAndOrders = async () => {
