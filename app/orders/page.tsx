@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Package, Clock, CheckCircle, Truck, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -157,7 +157,7 @@ export default function OrdersPage() {
                   <div>
                     <h3 className="font-bold text-lg text-gray-900">Order #{order.id}</h3>
                     <p className="text-sm text-gray-500" suppressHydrationWarning>
-                      {new Date(order.created_at || Date.now()).toLocaleDateString('en-US', {
+{new Date(order.created_at || now).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric'

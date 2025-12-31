@@ -49,9 +49,11 @@ export default function DashboardClient() {
 
   const filteredProducts = useMemo(() => products.filter(p => p.name.toLowerCase().includes(searchQuery.trim().toLowerCase())), [products, searchQuery]);
 
+  const now = useMemo(() => Date.now(), []);
+
   const isNewArrival = (createdAt?: string) => {
     if (!createdAt) return false;
-    return (Date.now() - new Date(createdAt).getTime()) < 1000 * 60 * 60 * 24 * 14; // 14 days
+    return (now - new Date(createdAt).getTime()) < 1000 * 60 * 60 * 24 * 14; // 14 days
   };
 
   const handleDeleteClick = (id: string) => {
